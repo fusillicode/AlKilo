@@ -10,14 +10,15 @@ async fn main() -> Result<(), fantoccini::error::CmdError> {
 
     c.goto("https://www.carrefour.it/spesa-online").await?;
 
-    let categories = c.find_all(Locator::Css(".category-list ul li")).await?;
+    let mut categories = c.find_all(Locator::Css(".category-list ul li")).await?;
 
-    let names: Vec<Option<String>> = stream::iter(categories)
-        .then(async move |mut el| el.text().await.ok())
+    let names: Vec<Option<String>> = stream::iter(&mut categories)
+        .then(async move |el| el.text().await.ok())
         .collect()
         .await;
 
     println!("{:?}", names);
+    println!("{:?}", categories);
 
     c.close().await
 }
