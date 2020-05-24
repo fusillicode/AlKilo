@@ -1,25 +1,23 @@
+#![feature(async_closure)]
 use fantoccini::{Client, Locator};
+use futures::stream::{self, StreamExt};
 
-// let's set up the sequence of steps we want the browser to take
 #[tokio::main]
 async fn main() -> Result<(), fantoccini::error::CmdError> {
     let mut c = Client::new("http://localhost:4444")
         .await
         .expect("failed to connect to WebDriver");
 
-    // first, go to the Wikipedia page for Foobar
-    c.goto("https://en.wikipedia.org/wiki/Foobar").await?;
-    let url = c.current_url().await?;
-    assert_eq!(url.as_ref(), "https://en.wikipedia.org/wiki/Foobar");
+    c.goto("https://www.carrefour.it/spesa-online").await?;
 
-    // click "Foo (disambiguation)"
-    c.find(Locator::Css(".mw-disambig")).await?.click().await?;
+    let categories = c.find_all(Locator::Css(".category-list ul li")).await?;
 
-    // click "Foo Lake"
-    c.find(Locator::LinkText("Foo Lake")).await?.click().await?;
+    let names: Vec<Option<String>> = stream::iter(categories)
+        .then(async move |mut el| el.text().await.ok())
+        .collect()
+        .await;
 
-    let url = c.current_url().await?;
-    assert_eq!(url.as_ref(), "https://en.wikipedia.org/wiki/Foo_Lake");
+    println!("{:?}", names);
 
     c.close().await
 }
